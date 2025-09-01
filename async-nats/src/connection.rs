@@ -25,7 +25,7 @@ use std::task::{Context, Poll};
 
 #[cfg(feature = "websockets")]
 use {
-    futures::{SinkExt, StreamExt},
+    futures_util::{SinkExt, StreamExt},
     pin_project::pin_project,
     tokio::io::ReadBuf,
     tokio_websockets::WebSocketStream,
@@ -920,6 +920,22 @@ mod read_op {
             result,
             Some(ServerOp::Info(Box::new(ServerInfo {
                 version: "1.0.0".into(),
+                ..Default::default()
+            })))
+        );
+
+        server
+            .write_all(b"INFO { \"version\": \"1.0.0\", \"cluster\": \"test-cluster\" }\r\n")
+            .await
+            .unwrap();
+        server.flush().await.unwrap();
+
+        let result = connection.read_op().await.unwrap();
+        assert_eq!(
+            result,
+            Some(ServerOp::Info(Box::new(ServerInfo {
+                version: "1.0.0".into(),
+                cluster: Some("test-cluster".into()),
                 ..Default::default()
             })))
         );
